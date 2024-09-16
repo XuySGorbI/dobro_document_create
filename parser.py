@@ -3,8 +3,8 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 # Целевые даты для сравнения
-start_date = datetime(2023, 11, 17)
-end_date = datetime(2024, 9, 12)
+start_date = datetime(2023, 11, 17) #год, месяц, день
+end_date = datetime(2024, 9, 12)    #год, месяц, день
 
 # Массив для хранения ссылок на мероприятия
 event_links = []
@@ -38,14 +38,14 @@ def translate_date(date_str):
 def parse_events(page_html):
     """Парсит страницу с событиями и сохраняет ссылки на события, которые попадают в заданный диапазон дат."""
     soup = BeautifulSoup(page_html, 'html.parser')
-    events = soup.find_all('div', class_='EventCard_card-wrapper__xn0uf')
+    events = soup.find_all('div', class_='OrganizationEventsPage_events__item__NULCJ')
 
     for event in events:
         # Извлекаем текстовую строку с датой из события
-        date_element = event.find('span', class_='CardTypes_card-date__title__zS1Lv')
+        date_element = event.find('span', class_="CardTypes_card-date__title__zS1Lv")
         
         if date_element is not None:
-            date_str = date_element.text.strip()  # Например, "9 июня 2024"
+            date_str = date_element.text.strip()  # Например, "12 сентября 2024"
             
             # Переводим русскую дату в формат с числовыми месяцами
             translated_date_str = translate_date(date_str)
@@ -58,7 +58,6 @@ def parse_events(page_html):
                     # Проверяем, попадает ли дата события в диапазон
                     if start_date <= event_date <= end_date:
                         # Извлекаем ссылку на мероприятие
-                        print("Дата найдена")
                         event_link = event.find('a', href=True)['href']
                         event_links.append(event_link)
                 except ValueError:
