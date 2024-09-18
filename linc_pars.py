@@ -2,7 +2,7 @@ from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 from datetime import datetime
 import asyncio
-from vars import lincs
+
 
 
 class Lincs_parser:
@@ -13,7 +13,7 @@ class Lincs_parser:
     end_date = datetime(2024, 9, 12)
     
     page_html = None
-    
+    lincs = None
 
     # Массив для хранения ссылок на мероприятия
     event_links = []
@@ -116,6 +116,6 @@ class Lincs_parser:
     async def pars_linc(self):
         await self.fetch_events()
         # Выводим собранные ссылки
-        lincs = self.event_links
+        self.lincs = self.event_links
         
 
