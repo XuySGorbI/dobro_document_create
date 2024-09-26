@@ -35,7 +35,8 @@ class Lincs_parser:
     }
     
         
-    def __init__(self, html, start, end):
+    def __init__(self, html = 0, start = datetime(), end = datetime()):
+        """Вводит в переменные (html stsrt=datetime end=datetime)"""
         self.page_html = html
         
         self.start_date = start 
