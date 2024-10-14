@@ -1,7 +1,13 @@
 import customtkinter as ctk
 from tkinter import ttk
+from dobro_pars import dobro_parser
+from linc_pars import Lincs_parser
+
+file_path=None
+class_one_pars = dobro_parser()
 
 class EventExcelUpdaterApp:
+    
     def __init__(self):
         self.app = ctk.CTk()
         self.app.geometry("800x600")
@@ -11,6 +17,10 @@ class EventExcelUpdaterApp:
         self.setup_gui()
 
     def setup_gui(self):
+        #error lable for errors and otputs for user
+        err_label = ctk.CTkLabel(self.app, text="Вывод процесса")
+        err_label.pack(pady=10)
+        
         # Frame for the upper section (two columns for inputs and buttons)
         upper_frame = ctk.CTkFrame(self.app)
         upper_frame.pack(fill="x", pady=10, padx=10)
@@ -48,11 +58,12 @@ class EventExcelUpdaterApp:
         right_buttons_frame.pack(pady=10)
 
         # Two buttons side by side in the right column
-        right_button_1 = ctk.CTkButton(right_buttons_frame, text="Кнопка 1")
+        right_button_1 = ctk.CTkButton(right_buttons_frame, text="Открыть файл", command=class_one_pars.open_file())
         right_button_1.grid(row=0, column=0, padx=5)
 
-        right_button_2 = ctk.CTkButton(right_buttons_frame, text="Кнопка 2")
+        right_button_2 = ctk.CTkButton(right_buttons_frame, text="Создать отчёт")
         right_button_2.grid(row=0, column=1, padx=5)
+        
 
         # Frame for the table (Treeview)
         table_frame = ctk.CTkFrame(self.app)
@@ -75,6 +86,16 @@ class EventExcelUpdaterApp:
         x_scrollbar = ttk.Scrollbar(self.app, orient="horizontal", command=self.tree.xview)
         self.tree.configure(xscrollcommand=x_scrollbar.set)
         x_scrollbar.pack(side="bottom", fill="x")
+        
+    def pars_all(self):
+        
+        
+        dobro_parser.for_button_pars()
+        
+            
+            
+            
+        
 
     def run(self):
         self.app.mainloop()

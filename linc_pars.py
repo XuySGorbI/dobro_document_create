@@ -1,7 +1,7 @@
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 from datetime import datetime
-import asyncio
+import asyncio 
 
 
 
@@ -12,8 +12,7 @@ class Lincs_parser:
     start_date = datetime(2023, 11, 17)
     end_date = datetime(2024, 9, 12)
     
-    page_html = None
-    lincs = None
+    page_org = None
 
     # Массив для хранения ссылок на мероприятия
     event_links = []
@@ -37,7 +36,7 @@ class Lincs_parser:
         
     def __init__(self, html = 0, start = datetime(), end = datetime()):
         """Вводит в переменные (html stsrt=datetime end=datetime)"""
-        self.page_html = html
+        self.page_org = html
         
         self.start_date = start 
         
@@ -56,9 +55,9 @@ class Lincs_parser:
             return f"{day} {month} {year}"
         return None
 
-    def parse_events(self, page_html):
+    def parse_events(self, page_org):
         """Парсит страницу с событиями и сохраняет ссылки на события, которые попадают в заданный диапазон дат."""
-        soup = BeautifulSoup(page_html, 'html.parser')
+        soup = BeautifulSoup(page_org, 'html.parser')
         events = soup.find_all('div', class_='OrganizationEventsPage_events__item__NULCJ')
 
         for event in events:
@@ -93,7 +92,7 @@ class Lincs_parser:
             page = await browser.new_page()
 
             # Переходим на страницу
-            await page.goto(f'https://dobro.ru/organizations/{self.page_html}/events')
+            await page.goto(f'https://dobro.ru/organizations/{self.page_org}/events')
 
             # Продолжаем нажимать кнопку "Показать еще" до тех пор, пока она не исчезнет
             while True:
@@ -117,6 +116,6 @@ class Lincs_parser:
     async def pars_linc(self):
         await self.fetch_events()
         # Выводим собранные ссылки
-        self.lincs = self.event_links
+        return self.event_links
         
 
