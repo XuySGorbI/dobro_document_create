@@ -34,17 +34,16 @@ class Lincs_parser:
     }
     
         
-    def __init__(self, html = 0, start = datetime(), end = datetime()):
-        """Вводит в переменные (html stsrt=datetime end=datetime)"""
+    def __init__(self, html = 0, start = str, end = str):
+        """Вводит в переменные (html stsrt=str end=str)"""               
         self.page_org = html
         
-        self.start_date = start 
+        self.start_date = datetime.strptime(start, "%m/%d/%y")
         
-        self.end_date = end
-        
-        
-        
-
+        self.end_date = datetime.strptime(end, "%m/%d/%y")
+    
+    
+    
     def translate_date(self, date_str):
         """Переводит строковую дату с русскими месяцами в формат 'день месяц год' с числовыми месяцами."""
         parts = date_str.split()
@@ -113,7 +112,8 @@ class Lincs_parser:
             await browser.close()
 
     # Запуск асинхронного кода
-    async def pars_linc(self):
+    async def pars_linc(self, number_org):
+        self.page_org = number_org
         await self.fetch_events()
         # Выводим собранные ссылки
         return self.event_links

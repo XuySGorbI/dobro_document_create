@@ -1,7 +1,8 @@
 import customtkinter as ctk
 from tkinter import ttk
 from dobro_pars import dobro_parser
-from linc_pars import Lincs_parser
+# from linc_pars import Lincs_parser
+from tkcalendar import DateEntry
 
 file_path=None
 class_one_pars = dobro_parser()
@@ -16,8 +17,9 @@ class EventExcelUpdaterApp:
         # Setup the main UI
         self.setup_gui()
 
+    
     def setup_gui(self):
-        #error lable for errors and otputs for user
+        # Error label for errors and outputs for the user
         err_label = ctk.CTkLabel(self.app, text="Вывод процесса")
         err_label.pack(pady=10)
         
@@ -45,58 +47,53 @@ class EventExcelUpdaterApp:
         right_frame = ctk.CTkFrame(upper_frame)
         right_frame.grid(row=0, column=1, padx=10, pady=10)
 
-        # Label for "Интерфейс 2" above the right column
-        right_label = ctk.CTkLabel(right_frame, text="Интерфейс 2")
-        right_label.pack(pady=10)
+        # Label for the right column
+        right_label = ctk.CTkLabel(right_frame, text="Даты")
+        right_label.grid(row=0, column=0, padx=5, pady=5, columnspan=2)
 
-        # Entry field in the right column
-        self.right_entry = ctk.CTkEntry(right_frame, width=300)
-        self.right_entry.pack(pady=10)
+        # "Дата от" field
+        start_date_label = ctk.CTkLabel(right_frame, text="От:")
+        start_date_label.grid(row=1, column=0, padx=5, pady=5)
+        
+        self.start_date_entry = DateEntry(right_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.start_date_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        # "Дата до" field
+        end_date_label = ctk.CTkLabel(right_frame, text="До:")
+        end_date_label.grid(row=2, column=0, padx=5, pady=5)
+        
+        self.end_date_entry = DateEntry(right_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.end_date_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        # Label for "Индекс организации"
+        org_index_label = ctk.CTkLabel(right_frame, text="Индекс организации")
+        org_index_label.grid(row=3, column=0, padx=5, pady=10, columnspan=2)
+
+        # Entry field for organization index
+        self.org_index_entry = ctk.CTkEntry(right_frame, width=300)
+        self.org_index_entry.grid(row=4, column=0, padx=5, pady=5, columnspan=2)
 
         # Frame for two buttons in the right column
         right_buttons_frame = ctk.CTkFrame(right_frame)
-        right_buttons_frame.pack(pady=10)
+        right_buttons_frame.grid(row=5, column=0, pady=10, columnspan=2)
 
         # Two buttons side by side in the right column
-        right_button_1 = ctk.CTkButton(right_buttons_frame, text="Открыть файл", command=class_one_pars.open_file())
+        right_button_1 = ctk.CTkButton(right_buttons_frame, text="Открыть файл", command=class_one_pars.open_file)
         right_button_1.grid(row=0, column=0, padx=5)
 
         right_button_2 = ctk.CTkButton(right_buttons_frame, text="Создать отчёт")
         right_button_2.grid(row=0, column=1, padx=5)
-        
 
         # Frame for the table (Treeview)
         table_frame = ctk.CTkFrame(self.app)
         table_frame.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # Table to display data
-        columns = [
-            'Полугодие', 'квартал', 'месяц', 'дата', 'часы мероприятия', 
-            'мероприятие', 'Проект', 'количество волонтеров', 'количество благополучателей', 
-            'место проведения', 'краткое описание', 'Ссылка', 'время проведения', 
-            'общее количество часов волонтёров'
-        ]
-        
-        self.tree = ttk.Treeview(table_frame, columns=columns, show='headings')
-        for col in columns:
-            self.tree.heading(col, text=col)
-        self.tree.pack(side="left", fill="both", expand=True)
-
-        # Horizontal scrollbar
-        x_scrollbar = ttk.Scrollbar(self.app, orient="horizontal", command=self.tree.xview)
-        self.tree.configure(xscrollcommand=x_scrollbar.set)
-        x_scrollbar.pack(side="bottom", fill="x")
         
     def pars_all(self):
         
+        # lincs = Lincs_parser()        
         
-        dobro_parser.for_button_pars()
-        
-            
-            
-            
-        
-
+        class_one_pars.for_button_pars()
+    
     def run(self):
         self.app.mainloop()
 

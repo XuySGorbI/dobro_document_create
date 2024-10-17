@@ -7,7 +7,7 @@ from myparser import pars_dob
 import re
 from datetime import datetime
 import asyncio
-from linc_pars import Lincs_parser
+
 
 class dobro_parser:
     
