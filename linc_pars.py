@@ -38,9 +38,9 @@ class Lincs_parser:
         """Вводит в переменные (html stsrt=str end=str)"""               
         self.page_org = html
         
-        self.start_date = datetime.strptime(start, "%m/%d/%y")
+        self.start_date = datetime.strptime(start, "%d/%m/%y")
         
-        self.end_date = datetime.strptime(end, "%m/%d/%y")
+        self.end_date = datetime.strptime(end, "%d/%m/%y")
     
     
     
