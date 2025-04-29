@@ -1,20 +1,19 @@
-import customtkinter as ctk
-from tkinter import ttk, filedialog
+
+from tkinter import filedialog
 from openpyxl import load_workbook, Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment
-from myparser import pars_dob
+from myparser import pars_dob  # Импорт функции `pars_dob` из модуля `myparser`.
 import re
 from datetime import datetime
-import asyncio
 
-
+# Класс для парсинга данных и работы с Excel
 class dobro_parser:
     
-    #путь к файлу экскля
+    # Путь к файлу Excel (инициализируется как None)
     _file_path = None
     
-    # Словарь для преобразования русских месяцев в английские
+    # Словарь для преобразования русских месяцев в английские (используется для обработки дат)
     months = {
         'января': 'January',
         'февраля': 'February',
@@ -30,38 +29,43 @@ class dobro_parser:
         'декабря': 'December'
     }
 
-    # Функция для извлечения данных из словаря и генерации данных строки Excel
+    # Функция для извлечения данных из словаря и подготовки строки для записи в Excel
     def extract_data(self, data):
-        event_title = data['EventInfo_event-title__k6Fsy d-none d-md-block']
-        project = data['EventInfo_event-partner__mHSXd d-none d-md-block']
-        location = data['CardTypes_card-location__title__uqLH2']
-        time_info = data['CardTypes_card-time__title__b3zsJ']
-        vacancies = data['EventVacanciesTab_tab__ePxnH']
-        url = data['url']
+        """
+        Извлекает данные из словаря, преобразует дату, время и вакансии.
+        :param data: Словарь, полученный из функции `pars_dob`.
+        :return: Преобразованный словарь для записи в Excel.
+        """
+        event_title = data['EventInfo_event-title__k6Fsy d-none d-md-block']  # Название события
+        project = data['EventInfo_event-partner__mHSXd d-none d-md-block']  # Партнёр события
+        location = data['CardTypes_card-location__title__uqLH2']  # Место проведения
+        time_info = data['CardTypes_card-time__title__b3zsJ']  # Дата и время
+        vacancies = data['EventVacanciesTab_tab__ePxnH']  # Вакансии
+        url = data['url']  # URL события
 
-        # Извлечение даты и времени
+        # Разделение строки времени на дату и время
         date_part, time_part = time_info.split(',')
-        day, month_rus, year = date_part.strip().split()
-        month = self.months[month_rus]
-        date = datetime.strptime(f"{day} {month} {year}", '%d %B %Y').strftime('%d.%m.%Y')
-        time_range = time_part.strip()
+        day, month_rus, year = date_part.strip().split()  # Извлекаем день, месяц и год
+        month = self.months[month_rus]  # Преобразуем название месяца в английское
+        date = datetime.strptime(f"{day} {month} {year}", '%d %B %Y').strftime('%d.%m.%Y')  # Форматируем дату
+        time_range = time_part.strip()  # Убираем лишние пробелы вокруг времени
 
-        # Обработка вакансий
+        # Обработка вакансий (подсчёт волонтёров и благополучателей)
         volunteers = 0
         beneficiaries = 0
-        for vacancy in vacancies.split('$'):
+        for vacancy in vacancies.split('$'):  # Каждая вакансия разделена символом `$`
             try:
-                matches = re.findall(r'(\d+)из\d+', vacancy)
+                matches = re.findall(r'(\d+)из\d+', vacancy)  # Находим числа в формате `N из M`
                 for match in matches:
                     number = int(match)
-                    if 'участник' not in vacancy:
+                    if 'участник' not in vacancy:  # Если слово "участник" отсутствует, считаем волонтёров
                         volunteers += number
-                    else:
+                    else:  # Иначе считаем благополучателей
                         beneficiaries += number
             except ValueError:
                 continue
 
-        # Извлечение названия проекта
+        # Извлечение названия проекта (после символа `#`)
         project_name = project.split('#')[-1]
 
         return {
@@ -75,8 +79,12 @@ class dobro_parser:
             'url': url
         }
 
-    # Функция для создания новой строки в Excel
+    # Создание новой строки в Excel
     def create_excel_row(self, data):
+        """
+        Создаёт строку в Excel, добавляет данные и формулы.
+        :param data: Словарь с данными для записи.
+        """
         extracted_data = self.extract_data(data)
         date = extracted_data['date']
         time_range = extracted_data['time_range']
@@ -87,21 +95,23 @@ class dobro_parser:
         beneficiaries = extracted_data['beneficiaries']
         url = extracted_data['url']
 
-        # Открыть или создать книгу
+        # Попытка открыть существующую книгу или создать новую
         try:
-            wb = load_workbook()
+            wb = load_workbook(self._file_path)  # Загружаем существующую книгу
             ws = wb.active
         except FileNotFoundError:
-            wb = Workbook()
+            wb = Workbook()  # Создаём новую книгу
             ws = wb.active
-            # Запись заголовков
-            headers = ['Полугодие', 'квартал', 'месяц', 'дата', 'часы мероприятия', 'мероприятие', 'Проект', 'количество волонтеров', 'количество благополучателей', 'место проведения', 'краткое описание', 'Ссылка', 'время проведения', 'общее количество часов волонтёров']
+            # Добавляем заголовки
+            headers = ['Полугодие', 'квартал', 'месяц', 'дата', 'часы мероприятия', 'мероприятие', 
+                       'Проект', 'количество волонтеров', 'количество благополучателей', 'место проведения', 
+                       'краткое описание', 'Ссылка', 'время проведения', 'общее количество часов волонтёров']
             ws.append(headers)
 
-        # Найти последнюю строку
+        # Определяем следующую доступную строку
         last_row = ws.max_row + 1
 
-        # Запись данных
+        # Запись данных в ячейки
         ws[f'D{last_row}'] = date
         ws[f'E{last_row}'] = f'=ТЕКСТ((ВРЕМЗНАЧ(ПСТР(M{last_row}, НАЙТИ("-", M{last_row}) + 2, 5)) - ВРЕМЗНАЧ(ЛЕВСИМВ(M{last_row}, НАЙТИ("-", M{last_row}) - 2))), "ч")'
         ws[f'F{last_row}'] = event_title
@@ -113,49 +123,55 @@ class dobro_parser:
         ws[f'M{last_row}'] = time_range
         ws[f'N{last_row}'] = f'=H{last_row} * E{last_row}'
 
-        # Формулы
+        # Формулы для полугодия, квартала и месяца
         ws[f'A{last_row}'] = f'=ЕСЛИ(МЕСЯЦ(D{last_row}) <= 6, 1, 2)'
         ws[f'B{last_row}'] = f'=ОКРУГЛВВЕРХ(МЕСЯЦ(D{last_row})/3, 0)'
         ws[f'C{last_row}'] = f'=ПРОПИСН(ТЕКСТ(D{last_row}, "ММММ"))'
 
-        # Сохранение книги
-        wb.save()
+        # Сохранение изменений
+        wb.save(self._file_path)
 
-    # Функция для обработки нажатия кнопки
+    # Обработка нажатия кнопки
     def for_button_pars(self, url_entry, error_label, tree):
-        """url_entry, error_label, tree"""
-        url = url_entry.get()
+        """
+        Обрабатывает нажатие кнопки, выполняет парсинг, добавляет строку в Excel и обновляет данные в интерфейсе.
+        """
+        url = url_entry.get()  # Получаем URL из текстового поля
         if not url:
             error_label.configure(text="Ошибка: URL не может быть пустым")
             return
 
         error_label.configure(text=f"Получен URL: {url}")
 
-        data = pars_dob(url)    
-    
+        data = pars_dob(url)  # Парсим данные с помощью функции `pars_dob`
         error_label.configure(text=f"Получены данные: {data}")
 
-        self.create_excel_row(data, self._file_path)
+        self.create_excel_row(data)  # Добавляем данные в Excel
         error_label.configure(text="Строка успешно добавлена")
-        self.load_excel_data(tree, self._file_path)
+        self.load_excel_data(tree)  # Загружаем данные в интерфейс
 
-
-    # Функция для открытия файла Excel
+    # Открытие файла Excel
     def open_file(self, tree):
+        """
+        Открывает диалог для выбора файла Excel и загружает данные в интерфейс.
+        """
         self._file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")])
         if self._file_path:
             self.load_excel_data(tree)
 
-    # Функция для загрузки и отображения данных Excel
+    # Загрузка данных из Excel и отображение их в интерфейсе
     def load_excel_data(self, tree):
-        for row in tree.get_children():
+        """
+        Загружает данные из Excel-файла и отображает их в дереве (таблице) интерфейса.
+        """
+        for row in tree.get_children():  # Удаляем старые данные из интерфейса
             tree.delete(row)
 
         try:
-            wb = load_workbook(self._file_path)
+            wb = load_workbook(self._file_path)  # Загружаем книгу Excel
             ws = wb.active
-            rows = ws.iter_rows(values_only=True)
+            rows = ws.iter_rows(values_only=True)  # Читаем строки
             for row in rows:
-                tree.insert("", "end", values=row)
+                tree.insert("", "end", values=row)  # Добавляем строки в интерфейс
         except FileNotFoundError:
             pass
