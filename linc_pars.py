@@ -66,9 +66,9 @@ class Lincs_parser:
         return None
 
 
-    def parse_events(self, page_org):
+    def parse_events(self, page):
         """Парсит страницу с событиями и сохраняет ссылки на события, которые попадают в заданный диапазон дат."""
-        soup = BeautifulSoup(page_org, 'html.parser')
+        soup = BeautifulSoup(page, 'html.parser')
         events = soup.find_all('div', class_='CardTypes_card__NujLP EventCard_card--small__Ydlqy') ###функция не работает
 
         for event in events:
@@ -105,43 +105,35 @@ class Lincs_parser:
                         logging.error(f"Ошибка преобразования даты: {translated_date_str}, ошибка: {e}")
                         continue
 
-    async def fetch_events(self):
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
-            await page.goto(f'https://dobro.ru/organizations/{self.page_org}/events?order%5Bid%5D=asc')
+    async def load_all_events(self):
+        with sync_playwright() as p:
+            browser = p.chromium.launch()  # или p.firefox.launch() или p.webkit.launch()
+            page = browser.new_page()
+            page.goto(self.html)
 
-            # Ждем, пока страница загрузится
-            await page.wait_for_load_state('networkidle')
-
-            while True:
-                try:
-                    # Дожидаемся появления кнопки
-                    load_more_button = await page.wait_for_selector("button.OrganizationEventsPage_events__load-more-btn__p2hOW", timeout=10000)
-                    
-                    # Кликаем на кнопку
-                    await load_more_button.click()
-                    
-                    # Ждем, пока страница обновится
-                    await page.wait_for_load_state('networkidle')
-
-                except Exception as e:
-                    print(f"Кнопка не найдена, или что-то пошло не так: {e}")
-                    break  # Прекращаем цикл, если кнопка не найдена или произошла ошибка
-
-            content = await page.content()
-            self.parse_events(content)
-
-            await browser.close()
+            try:
+                while True:
+                    try:
+                        button = page.locator('div.sc-4d3122e0-0 > button:text("Показать еще")')
+                        button.click()
+                        time.sleep(1)  # даем время странице подгрузиться
+                    except Exception:
+                        # Если кнопка не найдена (больше нет событий), выходим из цикла
+                        break
+            except Exception as e:
+                return(f"Произошла ошибка: {e}")
+            finally:
+                content = page.content()
+                browser.close()           
+                self.parse_events(content)
 
             
-    async def pars_linc(self, number_org):
+    async def pars_all_lincs(self):
         """
         Основной метод для извлечения ссылок на мероприятия.
         
         :param number_org: Идентификатор организации.
         :return: Список ссылок на мероприятия.
         """
-        self.page_org = number_org  # Сохраняем идентификатор организации
-        await self.fetch_events()  # Загружаем и парсим события
+        await self.load_all_events()  # Загружаем и парсим события
         return self.event_links  # Возвращаем собранные ссылки

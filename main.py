@@ -127,10 +127,7 @@ class EventExcelUpdaterApp:
                 end=self.end_date_entry.get_date().strftime('%d/%m/%y')
             )
             
-            # Извлекаем ссылки на мероприятия
-            await lincs_parser.fetch_events()
-            event_links = lincs_parser.event_links
-
+                        
             # Парсим каждую ссылку и добавляем данные в Excel
             for link in event_links:
                 data = class_one_pars.for_button_pars(link, self.err_label, self.table_frame)
