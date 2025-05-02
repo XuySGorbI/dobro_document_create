@@ -43,7 +43,7 @@ class EventExcelUpdaterApp:
         """
         self.link1 = ctk.CTkLabel(self.app, text="руководство", text_color="blue", cursor="hand2")
         self.link1.pack(pady=10)
-        self.link1.bind("<Button-1>", lambda e: webbrowser.open_new("https://github.com/XuySGorbI/dobro_document_create/blob/test_and_udate/linc_pars.py"))
+        self.link1.bind("<Button-1>", lambda e: webbrowser.open_new("https://github.com/XuySGorbI/dobro_document_create/blob/main/README.md"))
         # Метка для отображения сообщений об ошибках и результатах
         self.err_label = ctk.CTkLabel(self.app, text="Вывод процесса")
         self.err_label.pack(pady=10)
