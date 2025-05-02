@@ -5,6 +5,7 @@ from linc_pars import Lincs_parser  # Для извлечения ссылок �
 from tkcalendar import DateEntry  # Виджет для выбора даты
 import tkinter as tk  # Для работы с буфером обмена
 import asyncio
+import webbrowser
 
 class_one_pars = dobro_parser()  # Экземпляр класса `dobro_parser`
 
@@ -23,11 +24,26 @@ class EventExcelUpdaterApp:
         
         # Настраиваем графический интерфейс
         self.setup_gui()
+        self.app.bind("<Control-KeyPress>", self.keypress)
+        
+    @staticmethod
+    def keypress(event):
+        if event.keysym == "v":
+            pass
+        elif event.keycode == 86:
+            event.widget.event_generate('<<Paste>>')
+        elif event.keycode == 67:
+            event.widget.event_generate('<<Copy>>')
+        elif event.keycode == 88:
+            event.widget.event_generate('<<Cut>>')
 
     def setup_gui(self):
         """
         Создаёт элементы пользовательского интерфейса и размещает их.
         """
+        self.link1 = ctk.CTkLabel(self.app, text="руководство", text_color="blue", cursor="hand2")
+        self.link1.pack(pady=10)
+        self.link1.bind("<Button-1>", lambda e: webbrowser.open_new("https://github.com/XuySGorbI/dobro_document_create/blob/test_and_udate/linc_pars.py"))
         # Метка для отображения сообщений об ошибках и результатах
         self.err_label = ctk.CTkLabel(self.app, text="Вывод процесса")
         self.err_label.pack(pady=10)
@@ -44,15 +60,15 @@ class EventExcelUpdaterApp:
         self.left_label = ctk.CTkLabel(left_frame, text="По ссылке")
         self.left_label.pack(pady=10)
 
-        self.left_entry = ctk.CTkEntry(left_frame, width=300)
+        self.left_entry = ctk.CTkEntry(left_frame, width=300, placeholder_text = "Введите ссылку на доброе дело")
         self.left_entry.pack(pady=10)
 
-        self.left_button = ctk.CTkButton(left_frame, text="добавить")  # Без функционала
-        self.left_button.pack(pady=10)
+        self.left_button_1 = ctk.CTkButton(left_frame, text="Открыть файл", command=lambda: class_one_pars.open_file(self.table_frame)) # Без функционала
+        self.left_button_1.pack(pady=10)
         
-        # Добавляем поддержку Ctrl+V в поле ввода
-        self.left_entry.bind("<Control-v>", self.paste_clipboard)
-        self.left_entry.bind("<Control-V>", self.paste_clipboard)
+        self.left_button_2 = ctk.CTkButton(left_frame, text="добавить", command=lambda: class_one_pars.for_button_pars(self.left_entry, self.err_label, self.table_frame))  # Без функционала
+        self.left_button_2.pack(pady=10)
+     
         
         # Правая колонка
         right_frame = ctk.CTkFrame(upper_frame)
@@ -78,7 +94,7 @@ class EventExcelUpdaterApp:
         self.org_index_label = ctk.CTkLabel(right_frame, text="Индекс организации")
         self.org_index_label.grid(row=3, column=0, padx=5, pady=10, columnspan=2)
 
-        self.org_index_entry = ctk.CTkEntry(right_frame, width=300)
+        self.org_index_entry = ctk.CTkEntry(right_frame, width=300, placeholder_text = "индекс ищите в ссылке организаци цыфрами")
         self.org_index_entry.grid(row=4, column=0, padx=5, pady=5, columnspan=2)
 
         # Кнопки в правой колонке
@@ -104,16 +120,10 @@ class EventExcelUpdaterApp:
         # Настраиваем заголовки таблицы
         for col in ("Дата", "Время", "Название", "Проект", "Место", "Ссылка"):
             self.table_frame.heading(col, text=col)
+        
 
-    def paste_clipboard(self, event=None):
-        """
-        Обработчик вставки из буфера обмена в CTkEntry.
-        """
-        try:
-            clipboard_text = self.app.clipboard_get()
-            event.widget.insert("insert", clipboard_text)
-        except tk.TclError:
-            pass
+        
+
 
     def fetch_and_parse(self):
         """
@@ -122,7 +132,7 @@ class EventExcelUpdaterApp:
         try:
             # Создаём объект Lincs_parser с данными из интерфейса
             lincs_parser = Lincs_parser(
-                html=self.org_index_entry.get(),
+                html=f"https://dobro.ru/organizations/{self.org_index_entry.get()}/events?order%5Bid%5D=desc",
                 start=self.start_date_entry.get_date().strftime('%d/%m/%y'),
                 end=self.end_date_entry.get_date().strftime('%d/%m/%y')
             )
