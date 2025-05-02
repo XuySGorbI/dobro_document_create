@@ -3,8 +3,8 @@ from tkinter import ttk  # Виджеты интерфейса
 from dobro_pars import dobro_parser  # Для работы с парсингом данных по ссылкам
 from linc_pars import Lincs_parser  # Для извлечения ссылок на мероприятия
 from tkcalendar import DateEntry  # Виджет для выбора даты
-import asyncio
 import tkinter as tk  # Для работы с буфером обмена
+import asyncio
 
 class_one_pars = dobro_parser()  # Экземпляр класса `dobro_parser`
 
@@ -94,7 +94,7 @@ class EventExcelUpdaterApp:
         right_button_1.grid(row=0, column=0, padx=5)
 
         # Кнопка для парсинга событий и создания отчёта
-        right_button_2 = ctk.CTkButton(right_buttons_frame, text="Создать отчёт", command=self.pars_and_create_rows)
+        right_button_2 = ctk.CTkButton(right_buttons_frame, text="Создать отчёт", command=self.fetch_and_parse)
         right_button_2.grid(row=0, column=1, padx=5)
 
         # Таблица для отображения данных
@@ -115,7 +115,7 @@ class EventExcelUpdaterApp:
         except tk.TclError:
             pass
 
-    async def fetch_and_parse(self):
+    def fetch_and_parse(self):
         """
         Асинхронная функция для извлечения ссылок на мероприятия и обработки каждой ссылки.
         """
@@ -127,35 +127,19 @@ class EventExcelUpdaterApp:
                 end=self.end_date_entry.get_date().strftime('%d/%m/%y')
             )
             
+            event_links = lincs_parser.pars_all_lincs()
                         
             # Парсим каждую ссылку и добавляем данные в Excel
             for link in event_links:
-                data = class_one_pars.for_button_pars(link, self.err_label, self.table_frame)
-                self.add_to_table(data)
+                class_one_pars.for_button_pars(link, self.err_label, self.table_frame)
+                
             
             self.err_label.configure(text="Обработка завершена успешно!")
         
         except Exception as e:
             self.err_label.configure(text=f"Ошибка: {e}")
 
-    def add_to_table(self, data):
-        """
-        Добавляет данные в таблицу (Treeview).
-        """
-        self.table_frame.insert("", "end", values=(
-            data.get('date'),
-            data.get('time_range'),
-            data.get('event_title'),
-            data.get('project_name'),
-            data.get('location'),
-            data.get('url')
-        ))
 
-    def pars_and_create_rows(self):
-        """
-        Запускает асинхронный процесс парсинга и обработки ссылок.
-        """
-        asyncio.run(self.fetch_and_parse())
 
     def run(self):
         """

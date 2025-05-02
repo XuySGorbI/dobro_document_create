@@ -136,7 +136,10 @@ class dobro_parser:
         """
         Обрабатывает нажатие кнопки, выполняет парсинг, добавляет строку в Excel и обновляет данные в интерфейсе.
         """
-        url = url_entry.get()  # Получаем URL из текстового поля
+        if type(url_entry) != str:
+            url = url_entry.get()  # Получаем URL из текстового поля
+        else:
+            url = url_entry
         if not url:
             error_label.configure(text="Ошибка: URL не может быть пустым")
             return
@@ -149,6 +152,7 @@ class dobro_parser:
         self.create_excel_row(data)  # Добавляем данные в Excel
         error_label.configure(text="Строка успешно добавлена")
         self.load_excel_data(tree)  # Загружаем данные в интерфейс
+        
 
     # Открытие файла Excel
     def open_file(self, tree):

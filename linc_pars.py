@@ -1,10 +1,10 @@
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from datetime import datetime
-import asyncio 
 import logging
+import time
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s",filename='log.log', encoding='utf-8')
 
 class Lincs_parser:
     """
@@ -20,7 +20,7 @@ class Lincs_parser:
     page_org = None
 
     # Список для хранения ссылок на мероприятия
-    event_links = []
+    event_links = None
 
     # Словарь для перевода названий месяцев с русского на числовое представление
     months = {
@@ -69,8 +69,10 @@ class Lincs_parser:
     def parse_events(self, page):
         """Парсит страницу с событиями и сохраняет ссылки на события, которые попадают в заданный диапазон дат."""
         soup = BeautifulSoup(page, 'html.parser')
-        events = soup.find_all('div', class_='CardTypes_card__NujLP EventCard_card--small__Ydlqy') ###функция не работает
+        events = soup.find_all('div', class_='OrganizationEventsPage_events__item__NULCJ col-12 col-sm-6 col-md-4 col-lg-3') ###функция не работает
 
+        list_links = []
+        
         for event in events:
             # Извлекаем текстовую строку с датой из события
             date_element = event.find('span', class_="CardTypes_card-date__title__zS1Lv")
@@ -88,36 +90,39 @@ class Lincs_parser:
                 if translated_date_str:
                     try:
                         event_date = datetime.strptime(translated_date_str, "%d %m %Y")
-                        logging.info(f"Дата события: {event_date}")
-
+                                                
                         # Проверяем, попадает ли дата события в диапазон
                         if self.start_date <= event_date <= self.end_date:
                             logging.info(f"Событие в диапазоне: {event_date}")
                             
                             # Извлекаем ссылку на мероприятие
                             event_link = event.find('a', href=True)['href']
-                            self.event_links.append(event_link)
-                            logging.info(f"Добавлена ссылка: {event_link}")
+                            logging.info(f"Добавлена ссылка: {type(event_link)}")
+                            list_links.append(str(event_link))                            
                         else:
                             logging.info(f"Событие не в диапазоне: {event_date}")
                             
-                    except ValueError as e:
+                    except Exception as e:
                         logging.error(f"Ошибка преобразования даты: {translated_date_str}, ошибка: {e}")
                         continue
+                    
+        self.event_links = list_links
 
-    async def load_all_events(self):
+    def load_all_events(self):
         with sync_playwright() as p:
-            browser = p.chromium.launch()  # или p.firefox.launch() или p.webkit.launch()
+            browser = p.firefox.launch()  # p.firefox.launch() или p.chromium.launch()  или p.webkit.launch()
             page = browser.new_page()
-            page.goto(self.html)
+            page.goto(self.page_org)
 
-            try:
-                while True:
+            try:                  
+                
+                while True:                    
                     try:
-                        button = page.locator('div.sc-4d3122e0-0 > button:text("Показать еще")')
-                        button.click()
-                        time.sleep(1)  # даем время странице подгрузиться
-                    except Exception:
+                        page.get_by_role("button", name="Показать еще").click() # Поиск по видимому тексту и кнопуе                        
+
+
+                    except Exception as e:
+                        logging.error(f"Предупреждение кнопки: {e}")
                         # Если кнопка не найдена (больше нет событий), выходим из цикла
                         break
             except Exception as e:
@@ -128,12 +133,12 @@ class Lincs_parser:
                 self.parse_events(content)
 
             
-    async def pars_all_lincs(self):
+    def pars_all_lincs(self):
         """
         Основной метод для извлечения ссылок на мероприятия.
         
         :param number_org: Идентификатор организации.
         :return: Список ссылок на мероприятия.
         """
-        await self.load_all_events()  # Загружаем и парсим события
+        self.load_all_events()  # Загружаем и парсим события
         return self.event_links  # Возвращаем собранные ссылки
