@@ -6,6 +6,7 @@ from tkcalendar import DateEntry  # Виджет для выбора даты
 import tkinter as tk  # Для работы с буфером обмена
 import asyncio
 import webbrowser
+import sqlite3
 
 class_one_pars = dobro_parser()  # Экземпляр класса `dobro_parser`
 
@@ -121,8 +122,35 @@ class EventExcelUpdaterApp:
         for col in ("Дата", "Время", "Название", "Проект", "Место", "Ссылка"):
             self.table_frame.heading(col, text=col)
         
-
+    def create_db(self, id_org):
+        """
+        Метод для создания базы данных и создания таблиц организаций
+        """
+        connection = sqlite3.connect('shem.db')
+        cursor = connection.cursor()
         
+        cuesor.execute(f'''
+        CREATE TABLE IF NOT EXISTS ? (
+        id INTEGER PRIMARY KEY,
+        event_title TEXT NOT NULL,
+        project_name TEXT,
+        location TEXT NOT NULL,
+        url TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time_range TEXT NOT NULL,
+        volunteers INTEGER NOT NULL,
+        beneficiaries INTEGER
+        )
+        ''', (id_org))
+        
+        cursor.execute('''
+        CREATE TABLE IF NOT EXIST end_date_pars(
+        id_org INTEGER NOT NULL,
+        last_date_pars INTEGER NOT NULL
+        )
+        ''')
+        
+        connection.close()
 
 
     def fetch_and_parse(self):
@@ -130,9 +158,27 @@ class EventExcelUpdaterApp:
         Асинхронная функция для извлечения ссылок на мероприятия и обработки каждой ссылки.
         """
         try:
+            #Извлечение id организаци
+            org_id_get = self.org_index_entry.get()
+            #Создаёт базу данных таблицы индекс id и дату 
+            self.create_db(org_id_get)
+            
+            ## СОЗДАТЬ Проверку на наличии даты и добавить таблицу для последней даты обновления
+            
+            connection = sqlite3.connecr('shem.db')
+            cursor = connection.cursor()
+            
+            cursor.execute(f'''
+            SELECT last_date_pars from end_date_pars where id_org = ?
+            ''', (org_id_get))
+            
+            end_date_pars = cursor.fetchall().strftime('%d/%m/%y')
+            
+            
+            
             # Создаём объект Lincs_parser с данными из интерфейса
             lincs_parser = Lincs_parser(
-                html=f"https://dobro.ru/organizations/{self.org_index_entry.get()}/events?order%5Bid%5D=desc",
+                html=f"https://dobro.ru/organizations/{org_id_get}/events?order%5Bid%5D=desc",
                 start=self.start_date_entry.get_date().strftime('%d/%m/%y'),
                 end=self.end_date_entry.get_date().strftime('%d/%m/%y')
             )
