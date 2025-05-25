@@ -151,49 +151,116 @@ class EventExcelUpdaterApp:
         ''')
         
         connection.close()
-
+        
+    def get_last_parsed_date(self, org_id):
+        """
+        Получает последнюю дату парса для организации из базы данных.
+        """
+        connection = sqlite3.connect('shem.db')
+        cursor = connection.cursor()
+        cursor.execute('SELECT last_date_pars FROM end_date_pars WHERE id_org = ?', (org_id,))
+        row = cursor.fetchone()
+        connection.close()
+        return row[0] if row else None
 
     def fetch_and_parse(self):
         """
-        Асинхронная функция для извлечения ссылок на мероприятия и обработки каждой ссылки.
+        Проверяет дату, вызывает парсер или берёт данные из базы.
         """
         try:
-            #Извлечение id организаци
             org_id_get = self.org_index_entry.get()
-            #Создаёт базу данных таблицы индекс id и дату 
             self.create_db(org_id_get)
-            
-            ## СОЗДАТЬ Проверку на наличии даты и добавить таблицу для последней даты обновления
-            
-            connection = sqlite3.connecr('shem.db')
-            cursor = connection.cursor()
-            
-            cursor.execute(f'''
-            SELECT last_date_pars from end_date_pars where id_org = ?
-            ''', (org_id_get))
-            
-            end_date_pars = cursor.fetchall().strftime('%d/%m/%y')
-            
-            
-            
-            # Создаём объект Lincs_parser с данными из интерфейса
-            lincs_parser = Lincs_parser(
-                html=f"https://dobro.ru/organizations/{org_id_get}/events?order%5Bid%5D=desc",
-                start=self.start_date_entry.get_date().strftime('%d/%m/%y'),
-                end=self.end_date_entry.get_date().strftime('%d/%m/%y')
-            )
-            
-            event_links = lincs_parser.pars_all_lincs()
-                        
-            # Парсим каждую ссылку и добавляем данные в Excel
-            for link in event_links:
-                class_one_pars.for_button_pars(link, self.err_label, self.table_frame)
-                
-            
-            self.err_label.configure(text="Обработка завершена успешно!")
-        
+
+            # Получаем дату из календаря
+            selected_end_date = self.end_date_entry.get_date().strftime('%d/%m/%y')
+            last_date = self.get_last_parsed_date(org_id_get)
+
+            # Если нет даты в базе или новая дата больше — парсим всё
+            if not last_date or datetime.datetime.strptime(selected_end_date, '%d/%m/%y') > datetime.datetime.strptime(last_date, '%d/%m/%y'):
+                lincs_parser = Lincs_parser(
+                    html=f"https://dobro.ru/organizations/{org_id_get}/events?order%5Bid%5D=desc",
+                    start=self.start_date_entry.get_date().strftime('%d/%m/%y'),
+                    end=selected_end_date
+                )
+                event_links = lincs_parser.pars_all_lincs()
+                for link in event_links:
+                    class_one_pars.for_button_pars(link, self.err_label, self.table_frame)
+                # Обновляем дату в базе
+                connection = sqlite3.connect('shem.db')
+                cursor = connection.cursor()
+                if last_date:
+                    cursor.execute('UPDATE end_date_pars SET last_date_pars = ? WHERE id_org = ?', (selected_end_date, org_id_get))
+                else:
+                    cursor.execute('INSERT INTO end_date_pars (id_org, last_date_pars) VALUES (?, ?)', (org_id_get, selected_end_date))
+                connection.commit()
+                connection.close()
+                self.err_label.configure(text="Данные обновлены и обработаны парсером.")
+            else:
+                # Берём данные из базы
+                connection = sqlite3.connect('shem.db')
+                cursor = connection.cursor()
+                cursor.execute(f'''
+                    SELECT date, time_range, event_title, project_name, location, url
+                    FROM org_{org_id_get}
+                    WHERE date BETWEEN ? AND ?
+                ''', (
+                    self.start_date_entry.get_date().strftime('%d/%m/%y'),
+                    selected_end_date
+                ))
+                rows = cursor.fetchall()
+                connection.close()
+                # Очищаем таблицу и добавляем данные из базы
+                for i in self.table_frame.get_children():
+                    self.table_frame.delete(i)
+                for row in rows:
+                    self.table_frame.insert('', 'end', values=row)
+                self.err_label.configure(text="Данные взяты из базы, парсинг не требуется.")
+
         except Exception as e:
             self.err_label.configure(text=f"Ошибка: {e}")
+
+
+
+    # def fetch_and_parse(self):
+    #     """
+    #     Асинхронная функция для извлечения ссылок на мероприятия и обработки каждой ссылки.
+    #     """
+    #     try:
+    #         #Извлечение id организаци
+    #         org_id_get = self.org_index_entry.get()
+    #         #Создаёт базу данных таблицы индекс id и дату 
+    #         self.create_db(org_id_get)
+            
+    #         ## СОЗДАТЬ Проверку на последнюю даты и добавить таблицу для последней даты обновления
+            
+    #         connection = sqlite3.connecr('shem.db')
+    #         cursor = connection.cursor()
+            
+    #         cursor.execute(f'''
+    #         SELECT last_date_pars from end_date_pars where id_org = ?
+    #         ''', (org_id_get))
+            
+    #         end_date_pars = cursor.fetchall().strftime('%d/%m/%y')
+                  
+            
+    #         # Создаём объект Lincs_parser с данными из интерфейса
+    #         lincs_parser = Lincs_parser(
+    #             html=f"https://dobro.ru/organizations/{org_id_get}/events?order%5Bid%5D=desc",
+    #             start=self.start_date_entry.get_date().strftime('%d/%m/%y'),
+    #             end=self.end_date_entry.get_date().strftime('%d/%m/%y')
+    #         )
+            
+    #         event_links = lincs_parser.pars_all_lincs()
+                        
+    #         # Парсим каждую ссылку и добавляем данные в Excel
+    #         for link in event_links:
+    #             class_one_pars.for_button_pars(link, self.err_label, self.table_frame)
+                
+            
+    #         self.err_label.configure(text="Обработка завершена успешно!")
+        
+    #     except Exception as e:
+    #         self.err_label.configure(text=f"Ошибка: {e}")
 
 
 
