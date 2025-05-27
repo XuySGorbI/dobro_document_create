@@ -110,7 +110,7 @@ class Lincs_parser:
 
     def load_all_events(self):
         with sync_playwright() as p:
-            browser = p.chromium.launch()  # p.firefox.launch() или p.chromium.launch()  или p.webkit.launch()
+            browser = p.chromium.launch(headless=False)  # p.firefox.launch() или p.chromium.launch()  или p.webkit.launch()
             page = browser.new_page()
             page.goto(self.page_org)
 

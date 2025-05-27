@@ -113,15 +113,53 @@ class EventExcelUpdaterApp:
         right_button_2 = ctk.CTkButton(right_buttons_frame, text="Создать отчёт", command=self.fetch_and_parse)
         right_button_2.grid(row=0, column=1, padx=5)
 
-        # Таблица для отображения данных
-        self.table_frame = ttk.Treeview(self.app, columns=("Дата", "Время", "Название", "Проект", "Место", "Ссылка"), show="headings")
-        self.table_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        # Новые заголовки таблицы
+        columns = (
+            "полугодие",
+            "квартал",
+            "месяц",
+            "дата",
+            "часы мероприятия",
+            "название",
+            "проект",
+            "Учасники",
+            "благополучатели",
+            "аддресс",
+            "ссылка",
+            "времыя проведения",
+            "человеко часы"
+        )
+
+        # Фрейм для таблицы и скроллбаров
+        table_container = ctk.CTkFrame(self.app)
+        table_container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Вертикальный скроллбар
+        vsb = ttk.Scrollbar(table_container, orient="vertical")
+        vsb.pack(side="right", fill="y")
+
+        # Горизонтальный скроллбар
+        hsb = ttk.Scrollbar(table_container, orient="horizontal")
+        hsb.pack(side="bottom", fill="x")
+
+        self.table_frame = ttk.Treeview(
+            table_container,
+            columns=columns,
+            show="headings",
+            yscrollcommand=vsb.set,
+            xscrollcommand=hsb.set
+        )
+        self.table_frame.pack(fill="both", expand=True)
+
+        vsb.config(command=self.table_frame.yview)
+        hsb.config(command=self.table_frame.xview)
         
         # Настраиваем заголовки таблицы
-        for col in ("Дата", "Время", "Название", "Проект", "Место", "Ссылка"):
+        for col in columns:
             self.table_frame.heading(col, text=col)
-        
 
+        # Добавляем первую строку (заголовки) в таблицу
+        self.table_frame.insert('', 'end', values=columns)
         
 
 
