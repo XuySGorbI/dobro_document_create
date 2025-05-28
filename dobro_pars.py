@@ -1,4 +1,3 @@
-
 from tkinter import filedialog
 from openpyxl import load_workbook, Workbook
 from openpyxl.utils import get_column_letter
@@ -32,9 +31,10 @@ class dobro_parser:
     # Функция для извлечения данных из словаря и подготовки строки для записи в Excel
     def extract_data(self, data):
         """
-        Извлекает данные из словаря, преобразует дату, время и вакансии.
-        :param data: Словарь, полученный из функции `pars_dob`.
-        :return: Преобразованный словарь для записи в Excel.
+        Извлекает и преобразует данные из словаря, полученного парсером страницы.
+        Формирует структуру для дальнейшей записи в Excel.
+        :param data: Словарь, полученный из функции pars_dob.
+        :return: Словарь с преобразованными данными.
         """
         event_title = data['EventInfo_event-title__k6Fsy d-none d-md-block']  # Название события
         project = data['EventInfo_event-partner__mHSXd d-none d-md-block']  # Партнёр события
@@ -82,8 +82,10 @@ class dobro_parser:
     # Создание новой строки в Excel
     def create_excel_row(self, data):
         """
-        Создаёт строку в Excel, добавляет данные и формулы.
-        :param data: Словарь с данными для записи.
+        Добавляет новую строку с данными о мероприятии в Excel-файл.
+        Если файл не существует — создаёт новый и добавляет заголовки.
+        Вставляет формулы для вычисления полугодия, квартала, месяца, часов и человеко-часов.
+        :param data: Словарь с данными для записи (результат extract_data).
         """
         extracted_data = self.extract_data(data)
         date = extracted_data['date']
@@ -134,7 +136,11 @@ class dobro_parser:
     # Обработка нажатия кнопки
     def for_button_pars(self, url_entry, error_label, tree):
         """
-        Обрабатывает нажатие кнопки, выполняет парсинг, добавляет строку в Excel и обновляет данные в интерфейсе.
+        Обрабатывает нажатие кнопки "добавить" или автоматическую вставку по ссылке.
+        Получает ссылку, парсит данные, добавляет строку в Excel и обновляет таблицу в интерфейсе.
+        :param url_entry: Поле ввода или строка с URL.
+        :param error_label: Виджет для вывода сообщений об ошибках.
+        :param tree: Таблица (Treeview) для отображения данных.
         """
         if type(url_entry) != str:
             url = url_entry.get()  # Получаем URL из текстового поля
@@ -157,7 +163,9 @@ class dobro_parser:
     # Открытие файла Excel
     def open_file(self, tree):
         """
-        Открывает диалог для выбора файла Excel и загружает данные в интерфейс.
+        Открывает диалоговое окно для выбора Excel-файла.
+        После выбора файла загружает его содержимое в таблицу интерфейса.
+        :param tree: Таблица (Treeview) для отображения данных.
         """
         self._file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")])
         if self._file_path:
@@ -166,7 +174,9 @@ class dobro_parser:
     # Загрузка данных из Excel и отображение их в интерфейсе
     def load_excel_data(self, tree):
         """
-        Загружает данные из Excel-файла и отображает их в дереве (таблице) интерфейса.
+        Загружает все строки из Excel-файла и отображает их в таблице интерфейса.
+        Очищает старые строки перед загрузкой новых.
+        :param tree: Таблица (Treeview) для отображения данных.
         """
         for row in tree.get_children():  # Удаляем старые данные из интерфейса
             tree.delete(row)
