@@ -40,11 +40,10 @@ class Lincs_parser:
     
     def __init__(self, html=0, start=str, end=str):
         """
-        Инициализация объекта класса.
-        
-        :param html: HTML-код страницы (по умолчанию 0).
-        :param start: Начальная дата в формате строки (дд/мм/гг).
-        :param end: Конечная дата в формате строки (дд/мм/гг).
+        Инициализация парсера ссылок на мероприятия.
+        :param html: URL страницы организации.
+        :param start: Начальная дата диапазона (строка дд/мм/гг).
+        :param end: Конечная дата диапазона (строка дд/мм/гг).
         """
         self.page_org = html  # Сохраняем HTML страницы
         self.start_date = datetime.strptime(start, "%d/%m/%y")  # Преобразуем строку в объект даты
@@ -52,8 +51,7 @@ class Lincs_parser:
     
     def translate_date(self, date_str):
         """
-        Переводит строку с русскими месяцами в формат 'день месяц год' с числовыми месяцами.
-        
+        Переводит строку с датой на русском в формат с числовым месяцем.
         :param date_str: Строка с датой (например, "12 сентября 2024").
         :return: Строка с датой в формате '12 9 2024'.
         """
@@ -67,7 +65,11 @@ class Lincs_parser:
 
 
     def parse_events(self, page):
-        """Парсит страницу с событиями и сохраняет ссылки на события, которые попадают в заданный диапазон дат."""
+        """
+        Парсит HTML страницы организации, извлекает события и фильтрует их по дате.
+        Сохраняет ссылки на события, которые попадают в указанный диапазон дат.
+        :param page: HTML-код страницы.
+        """
         soup = BeautifulSoup(page, 'html.parser')
         events = soup.find_all('div', class_='OrganizationEventsPage_events__item__NULCJ col-12 col-sm-6 col-md-4 col-lg-3') ###функция не работает
 
@@ -109,6 +111,10 @@ class Lincs_parser:
         self.event_links = list_links
 
     def load_all_events(self):
+        """
+        Загружает все события с сайта организации, эмулирует нажатие кнопки "Показать еще".
+        После загрузки всей страницы вызывает парсер событий.
+        """
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=False)  # p.firefox.launch() или p.chromium.launch()  или p.webkit.launch()
             page = browser.new_page()
@@ -135,9 +141,7 @@ class Lincs_parser:
             
     def pars_all_lincs(self):
         """
-        Основной метод для извлечения ссылок на мероприятия.
-        
-        :param number_org: Идентификатор организации.
+        Основной метод для получения всех ссылок на мероприятия в диапазоне дат.
         :return: Список ссылок на мероприятия.
         """
         self.load_all_events()  # Загружаем и парсим события

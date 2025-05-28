@@ -157,9 +157,6 @@ class EventExcelUpdaterApp:
         # Настраиваем заголовки таблицы
         for col in columns:
             self.table_frame.heading(col, text=col)
-
-        # Добавляем первую строку (заголовки) в таблицу
-        self.table_frame.insert('', 'end', values=columns)
         
 
 
