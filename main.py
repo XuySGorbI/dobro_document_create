@@ -91,7 +91,7 @@ class EventExcelUpdaterApp:
         self.end_date_entry.grid(row=2, column=1, padx=5, pady=5)
 
         # Поле для ввода индекса организации
-        self.org_index_label = ctk.CTkLabel(right_frame, text="Индекс организации")
+        self.org_index_label = ctk.CTkLabel(right_frame, text="Индекс(id) организации")
         self.org_index_label.grid(row=3, column=0, padx=5, pady=10, columnspan=2)
 
         self.org_index_entry = ctk.CTkEntry(right_frame, width=300, placeholder_text = "индекс ищите в ссылке организаци цыфрами")
@@ -124,7 +124,7 @@ class EventExcelUpdaterApp:
             "проект",
             "Учасники",
             "благополучатели",
-            "аддресс",
+            "адрес",
             "ссылка",
             "времыя проведения",
             "человеко часы"
