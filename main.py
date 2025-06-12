@@ -12,22 +12,42 @@ class_one_pars = dobro_parser()  # Экземпляр класса `dobro_parser
 class EventExcelUpdaterApp:
     """
     Класс приложения для парсинга событий и записи данных в Excel.
+
+    Атрибуты
+    --------
+    app : ctk.CTk
+        Главное окно приложения.
+    table_frame : ttk.Treeview
+        Таблица для отображения данных.
+    err_label : ctk.CTkLabel
+        Метка для вывода ошибок и статуса.
+    left_entry : ctk.CTkEntry
+        Поле для ввода ссылки на мероприятие.
+    org_index_entry : ctk.CTkEntry
+        Поле для ввода индекса организации.
+    start_date_entry : DateEntry
+        Виджет выбора начальной даты.
+    end_date_entry : DateEntry
+        Виджет выбора конечной даты.
     """
-    
+
     def __init__(self):
         """
-        Инициализация приложения.
+        Инициализация приложения: создание окна, настройка интерфейса.
         """
-        self.app = ctk.CTk()  # Создаём основное окно приложения
-        self.app.geometry("800x600")  # Устанавливаем размеры окна
-        self.app.title("Event Excel Updater")  # Устанавливаем заголовок окна
-        
-        # Настраиваем графический интерфейс
+        self.app = ctk.CTk()
+        self.app.geometry("800x600")
+        self.app.title("Event Excel Updater")
         self.setup_gui()
         self.app.bind("<Control-KeyPress>", self.keypress)
-        
+
     @staticmethod
     def keypress(event):
+        """
+        Обработка нажатий клавиш Ctrl+C, Ctrl+V, Ctrl+X для копирования, вставки и вырезания.
+
+        :param event: Событие клавиатуры.
+        """
         if event.keysym == "v":
             pass
         elif event.keycode == 86:
@@ -39,7 +59,7 @@ class EventExcelUpdaterApp:
 
     def setup_gui(self):
         """
-        Создаёт элементы пользовательского интерфейса и размещает их.
+        Создаёт элементы пользовательского интерфейса и размещает их в окне приложения.
         """
         self.link1 = ctk.CTkLabel(self.app, text="руководство", text_color="blue", cursor="hand2")
         self.link1.pack(pady=10)
@@ -162,7 +182,8 @@ class EventExcelUpdaterApp:
 
     def fetch_and_parse(self):
         """
-        Асинхронная функция для извлечения ссылок на мероприятия и обработки каждой ссылки.
+        Извлекает ссылки на мероприятия по заданным датам и организации,
+        парсит каждую ссылку и добавляет данные в Excel и таблицу интерфейса.
         """
         try:
             # Создаём объект Lincs_parser с данными из интерфейса
@@ -188,7 +209,7 @@ class EventExcelUpdaterApp:
 
     def run(self):
         """
-        Запускает приложение.
+        Запускает главный цикл приложения.
         """
         self.app.mainloop()
 

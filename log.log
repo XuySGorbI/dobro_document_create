@@ -5726,3 +5726,11 @@ Call log:
 2025-05-27 20:08:12,709 - Исходная дата: 3 марта 2023
 2025-05-27 20:08:12,709 - Переведенная дата: 3 3 2023
 2025-05-27 20:08:12,709 - Событие не в диапазоне: 2023-03-03 00:00:00
+2025-06-06 17:24:21,123 - Предупреждение кнопки: Locator.click: Target page, context or browser has been closed
+Call log:
+  - waiting for get_by_role("button", name="Показать еще")
+
+2025-06-06 17:26:56,030 - Предупреждение кнопки: Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for get_by_role("button", name="Показать еще")
+

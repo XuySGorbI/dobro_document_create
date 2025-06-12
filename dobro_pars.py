@@ -8,7 +8,10 @@ from datetime import datetime
 
 # Класс для парсинга данных и работы с Excel
 class dobro_parser:
-    
+    """
+    Класс для парсинга данных и работы с Excel.
+    """
+
     # Путь к файлу Excel (инициализируется как None)
     _file_path = None
     
