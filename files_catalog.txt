@@ -1,0 +1,734 @@
+# Каталог файлов директории: A:\xuita2\dock
+# Создано: A:\xuita2\python\dobro_document_create
+# ============================================================
+
+**dobro_pars.py**
+
+from tkinter import filedialog
+from openpyxl import load_workbook, Workbook
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Alignment
+from myparser import pars_dob  # Импорт функции `pars_dob` из модуля `myparser`.
+import re
+from datetime import datetime
+
+# Класс для парсинга данных и работы с Excel
+class dobro_parser:
+    """
+    Класс для парсинга данных и работы с Excel.
+    """
+
+    # Путь к файлу Excel (инициализируется как None)
+    _file_path = None
+    
+    # Словарь для преобразования русских месяцев в английские (используется для обработки дат)
+    months = {
+        'января': 'January',
+        'февраля': 'February',
+        'марта': 'March',
+        'апреля': 'April',
+        'мая': 'May',
+        'июня': 'June',
+        'июля': 'July',
+        'августа': 'August',
+        'сентября': 'September',
+        'октября': 'October',
+        'ноября': 'November',
+        'декабря': 'December'
+    }
+
+    # Функция для извлечения данных из словаря и подготовки строки для записи в Excel
+    def extract_data(self, data):
+        """
+        Извлекает и преобразует данные из словаря, полученного парсером страницы.
+        Формирует структуру для дальнейшей записи в Excel.
+        :param data: Словарь, полученный из функции pars_dob.
+        :return: Словарь с преобразованными данными.
+        """
+        event_title = data['EventInfo_event-title__k6Fsy d-none d-md-block']  # Название события
+        project = data['EventInfo_event-partner__mHSXd d-none d-md-block']  # Партнёр события
+        location = data['CardTypes_card-location__title__uqLH2']  # Место проведения
+        time_info = data['CardTypes_card-time__title__b3zsJ']  # Дата и время
+        vacancies = data['EventVacanciesTab_tab__ePxnH']  # Вакансии
+        url = data['url']  # URL события
+
+        # Разделение строки времени на дату и время
+        date_part, time_part = time_info.split(',')
+        day, month_rus, year = date_part.strip().split()  # Извлекаем день, месяц и год
+        month = self.months[month_rus]  # Преобразуем название месяца в английское
+        date = datetime.strptime(f"{day} {month} {year}", '%d %B %Y').strftime('%d.%m.%Y')  # Форматируем дату
+        time_range = time_part.strip()  # Убираем лишние пробелы вокруг времени
+
+        # Обработка вакансий (подсчёт волонтёров и благополучателей)
+        volunteers = 0
+        beneficiaries = 0
+        for vacancy in vacancies.split('$'):  # Каждая вакансия разделена символом `$`
+            try:
+                matches = re.findall(r'(\d+)из\d+', vacancy)  # Находим числа в формате `N из M`
+                for match in matches:
+                    number = int(match)
+                    if 'участник' not in vacancy:  # Если слово "участник" отсутствует, считаем волонтёров
+                        volunteers += number
+                    else:  # Иначе считаем благополучателей
+                        beneficiaries += number
+            except ValueError:
+                continue
+
+        # Извлечение названия проекта (после символа `#`)
+        project_name = project.split('#')[-1]
+
+        return {
+            'date': date,
+            'time_range': time_range,
+            'event_title': event_title,
+            'project_name': project_name,
+            'location': location,
+            'volunteers': volunteers,
+            'beneficiaries': beneficiaries,
+            'url': url
+        }
+
+    # Создание новой строки в Excel
+    def create_excel_row(self, data):
+        """
+        Добавляет новую строку с данными о мероприятии в Excel-файл.
+        Если файл не существует — создаёт новый и добавляет заголовки.
+        Вставляет формулы для вычисления полугодия, квартала, месяца, часов и человеко-часов.
+        :param data: Словарь с данными для записи (результат extract_data).
+        """
+        extracted_data = self.extract_data(data)
+        date = extracted_data['date']
+        time_range = extracted_data['time_range']
+        event_title = extracted_data['event_title']
+        project_name = extracted_data['project_name']
+        location = extracted_data['location']
+        volunteers = extracted_data['volunteers']
+        beneficiaries = extracted_data['beneficiaries']
+        url = extracted_data['url']
+
+        # Попытка открыть существующую книгу или создать новую
+        try:
+            wb = load_workbook(self._file_path)  # Загружаем существующую книгу
+            ws = wb.active
+        except FileNotFoundError:
+            wb = Workbook()  # Создаём новую книгу
+            ws = wb.active
+            # Добавляем заголовки
+            headers = ['Полугодие', 'квартал', 'месяц', 'дата', 'часы мероприятия', 'мероприятие', 
+                       'Проект', 'количество волонтеров', 'количество благополучателей', 'место проведения', 
+                       'краткое описание', 'Ссылка', 'время проведения', 'общее количество часов волонтёров']
+            ws.append(headers)
+
+        # Определяем следующую доступную строку
+        last_row = ws.max_row + 1
+
+        # Запись данных в ячейки
+        ws[f'D{last_row}'] = date
+        ws[f'E{last_row}'] = f'=ТЕКСТ((ВРЕМЗНАЧ(ПСТР(M{last_row}, НАЙТИ("-", M{last_row}) + 2, 5)) - ВРЕМЗНАЧ(ЛЕВСИМВ(M{last_row}, НАЙТИ("-", M{last_row}) - 2))), "ч")'
+        ws[f'F{last_row}'] = event_title
+        ws[f'G{last_row}'] = project_name
+        ws[f'H{last_row}'] = volunteers
+        ws[f'I{last_row}'] = beneficiaries
+        ws[f'J{last_row}'] = location
+        ws[f'L{last_row}'] = url
+        ws[f'M{last_row}'] = time_range
+        ws[f'N{last_row}'] = f'=H{last_row} * E{last_row}'
+
+        # Формулы для полугодия, квартала и месяца
+        ws[f'A{last_row}'] = f'=ЕСЛИ(МЕСЯЦ(D{last_row}) <= 6, 1, 2)'
+        ws[f'B{last_row}'] = f'=ОКРУГЛВВЕРХ(МЕСЯЦ(D{last_row})/3, 0)'
+        ws[f'C{last_row}'] = f'=ПРОПИСН(ТЕКСТ(D{last_row}, "ММММ"))'
+
+        # Сохранение изменений
+        wb.save(self._file_path)
+
+    # Обработка нажатия кнопки
+    def for_button_pars(self, url_entry, error_label, tree):
+        """
+        Обрабатывает нажатие кнопки "добавить" или автоматическую вставку по ссылке.
+        Получает ссылку, парсит данные, добавляет строку в Excel и обновляет таблицу в интерфейсе.
+        :param url_entry: Поле ввода или строка с URL.
+        :param error_label: Виджет для вывода сообщений об ошибках.
+        :param tree: Таблица (Treeview) для отображения данных.
+        """
+        if type(url_entry) != str:
+            url = url_entry.get()  # Получаем URL из текстового поля
+        else:
+            url = url_entry
+        if not url:
+            error_label.configure(text="Ошибка: URL не может быть пустым")
+            return
+
+        error_label.configure(text=f"Получен URL: {url}")
+
+        data = pars_dob(url)  # Парсим данные с помощью функции `pars_dob`
+        error_label.configure(text=f"Получены данные: {data}")
+
+        self.create_excel_row(data)  # Добавляем данные в Excel
+        error_label.configure(text="Строка успешно добавлена")
+        self.load_excel_data(tree)  # Загружаем данные в интерфейс
+        
+
+    # Открытие файла Excel
+    def open_file(self, tree):
+        """
+        Открывает диалоговое окно для выбора Excel-файла.
+        После выбора файла загружает его содержимое в таблицу интерфейса.
+        :param tree: Таблица (Treeview) для отображения данных.
+        """
+        self._file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")])
+        if self._file_path:
+            self.load_excel_data(tree)
+
+    # Загрузка данных из Excel и отображение их в интерфейсе
+    def load_excel_data(self, tree):
+        """
+        Загружает все строки из Excel-файла и отображает их в таблице интерфейса.
+        Очищает старые строки перед загрузкой новых.
+        :param tree: Таблица (Treeview) для отображения данных.
+        """
+        for row in tree.get_children():  # Удаляем старые данные из интерфейса
+            tree.delete(row)
+
+        try:
+            wb = load_workbook(self._file_path)  # Загружаем книгу Excel
+            ws = wb.active
+            rows = ws.iter_rows(values_only=True)  # Читаем строки
+            for row in rows:
+                tree.insert("", "end", values=row)  # Добавляем строки в интерфейс
+        except FileNotFoundError:
+            pass
+
+
+
+
+**linc_pars.py**
+
+from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
+from datetime import datetime
+import logging
+import time
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s",filename='log.log', encoding='utf-8')
+
+class Lincs_parser:
+    """
+    Класс для извлечения ссылок на мероприятия с сайта dobro.ru.
+    Предназначен для парсинга событий, которые попадают в указанный диапазон дат.
+    """
+
+    # Целевые даты для фильтрации событий
+    start_date = datetime(2023, 11, 17)  # Начальная дата
+    end_date = datetime(2024, 9, 12)     # Конечная дата
+    
+    # Переменная для хранения идентификатора организации
+    page_org = None
+
+    # Список для хранения ссылок на мероприятия
+    event_links = None
+
+    # Словарь для перевода названий месяцев с русского на числовое представление
+    months = {
+        'января': '1',
+        'февраля': '2',
+        'марта': '3',
+        'апреля': '4',
+        'мая': '5',
+        'июня': '6',
+        'июля': '7',
+        'августа': '8',
+        'сентября': '9',
+        'октября': '10',
+        'ноября': '11',
+        'декабря': '12'
+    }
+    
+    def __init__(self, html=0, start=str, end=str):
+        """
+        Инициализация парсера ссылок на мероприятия.
+        :param html: URL страницы организации.
+        :param start: Начальная дата диапазона (строка дд/мм/гг).
+        :param end: Конечная дата диапазона (строка дд/мм/гг).
+        """
+        self.page_org = html  # Сохраняем HTML страницы
+        self.start_date = datetime.strptime(start, "%d/%m/%y")  # Преобразуем строку в объект даты
+        self.end_date = datetime.strptime(end, "%d/%m/%y")      # Преобразуем строку в объект даты
+    
+    def translate_date(self, date_str):
+        """
+        Переводит строку с датой на русском в формат с числовым месяцем.
+        :param date_str: Строка с датой (например, "12 сентября 2024").
+        :return: Строка с датой в формате '12 9 2024'.
+        """
+        parts = date_str.split()
+        if len(parts) == 3:  # Ожидаем три части: день, месяц, год
+            day, month, year = parts
+            # Заменяем название месяца на числовое значение
+            month = self.months.get(month, month)
+            return f"{day} {month} {year}"
+        return None
+
+
+    def parse_events(self, page):
+        """
+        Парсит HTML страницы организации, извлекает события и фильтрует их по дате.
+        Сохраняет ссылки на события, которые попадают в указанный диапазон дат.
+        :param page: HTML-код страницы.
+        """
+        soup = BeautifulSoup(page, 'html.parser')
+        events = soup.find_all('div', class_='OrganizationEventsPage_events__item__NULCJ col-12 col-sm-6 col-md-4 col-lg-3') ###функция не работает
+
+        list_links = []
+        
+        for event in events:
+            # Извлекаем текстовую строку с датой из события
+            date_element = event.find('span', class_="CardTypes_card-date__title__zS1Lv")
+            
+            if date_element is not None:
+                date_str = date_element.text.strip()  # Например, "12 сентября 2024"
+                
+                # Логируем исходную дату
+                logging.info(f"Исходная дата: {date_str}")
+                
+                # Переводим русскую дату в формат с числовыми месяцами
+                translated_date_str = self.translate_date(date_str)
+                logging.info(f"Переведенная дата: {translated_date_str}")
+
+                if translated_date_str:
+                    try:
+                        event_date = datetime.strptime(translated_date_str, "%d %m %Y")
+                                                
+                        # Проверяем, попадает ли дата события в диапазон
+                        if self.start_date <= event_date <= self.end_date:
+                            logging.info(f"Событие в диапазоне: {event_date}")
+                            
+                            # Извлекаем ссылку на мероприятие
+                            event_link = event.find('a', href=True)['href']
+                            logging.info(f"Добавлена ссылка: {type(event_link)}")
+                            list_links.append(str(event_link))                            
+                        else:
+                            logging.info(f"Событие не в диапазоне: {event_date}")
+                            
+                    except Exception as e:
+                        logging.error(f"Ошибка преобразования даты: {translated_date_str}, ошибка: {e}")
+                        continue
+                    
+        self.event_links = list_links
+
+    def load_all_events(self):
+        """
+        Загружает все события с сайта организации, эмулирует нажатие кнопки "Показать еще".
+        После загрузки всей страницы вызывает парсер событий.
+        """
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=False)  # p.firefox.launch() или p.chromium.launch()  или p.webkit.launch()
+            page = browser.new_page()
+            page.goto(self.page_org, timeout=10000)  # 10000 мс = 10 секунд
+
+            try:                  
+                
+                while True:                    
+                    try:
+                        page.get_by_role("button", name="Показать еще").click() # Поиск по видимому тексту и кнопуе                        
+
+
+                    except Exception as e:
+                        logging.error(f"Предупреждение кнопки: {e}")
+                        # Если кнопка не найдена (больше нет событий), выходим из цикла
+                        break
+            except Exception as e:
+                return(f"Произошла ошибка: {e}")
+            finally:
+                content = page.content()
+                browser.close()           
+                self.parse_events(content)
+
+            
+    def pars_all_lincs(self):
+        """
+        Основной метод для получения всех ссылок на мероприятия в диапазоне дат.
+        :return: Список ссылок на мероприятия.
+        """
+        self.load_all_events()  # Загружаем и парсим события
+        return self.event_links  # Возвращаем собранные ссылки
+
+
+
+
+**main.py**
+
+import customtkinter as ctk  # Для пользовательского интерфейса
+from tkinter import ttk  # Виджеты интерфейса
+from dobro_pars import dobro_parser  # Для работы с парсингом данных по ссылкам
+from linc_pars import Lincs_parser  # Для извлечения ссылок на мероприятия
+from tkcalendar import DateEntry  # Виджет для выбора даты
+import tkinter as tk  # Для работы с буфером обмена
+import asyncio
+import webbrowser
+
+class_one_pars = dobro_parser()  # Экземпляр класса `dobro_parser`
+
+class EventExcelUpdaterApp:
+    """
+    Класс приложения для парсинга событий и записи данных в Excel.
+
+    Атрибуты
+    --------
+    app : ctk.CTk
+        Главное окно приложения.
+    table_frame : ttk.Treeview
+        Таблица для отображения данных.
+    err_label : ctk.CTkLabel
+        Метка для вывода ошибок и статуса.
+    left_entry : ctk.CTkEntry
+        Поле для ввода ссылки на мероприятие.
+    org_index_entry : ctk.CTkEntry
+        Поле для ввода индекса организации.
+    start_date_entry : DateEntry
+        Виджет выбора начальной даты.
+    end_date_entry : DateEntry
+        Виджет выбора конечной даты.
+    """
+
+    def __init__(self):
+        """
+        Инициализация приложения: создание окна, настройка интерфейса.
+        """
+        self.app = ctk.CTk()
+        self.app.geometry("800x600")
+        self.app.title("Event Excel Updater")
+        self.setup_gui()
+        self.app.bind("<Control-KeyPress>", self.keypress)
+
+    @staticmethod
+    def keypress(event):
+        """
+        Обработка нажатий клавиш Ctrl+C, Ctrl+V, Ctrl+X для копирования, вставки и вырезания.
+
+        :param event: Событие клавиатуры.
+        """
+        if event.keysym == "v":
+            pass
+        elif event.keycode == 86:
+            event.widget.event_generate('<<Paste>>')
+        elif event.keycode == 67:
+            event.widget.event_generate('<<Copy>>')
+        elif event.keycode == 88:
+            event.widget.event_generate('<<Cut>>')
+
+    def setup_gui(self):
+        """
+        Создаёт элементы пользовательского интерфейса и размещает их в окне приложения.
+        """
+        self.link1 = ctk.CTkLabel(self.app, text="руководство", text_color="blue", cursor="hand2")
+        self.link1.pack(pady=10)
+        self.link1.bind("<Button-1>", lambda e: webbrowser.open_new("https://github.com/XuySGorbI/dobro_document_create/blob/main/README.md"))
+        # Метка для отображения сообщений об ошибках и результатах
+        self.err_label = ctk.CTkLabel(self.app, text="Вывод процесса")
+        self.err_label.pack(pady=10)
+        
+        # Верхняя секция интерфейса с двумя колонками
+        upper_frame = ctk.CTkFrame(self.app)
+        upper_frame.pack(fill="x", pady=10, padx=10)
+
+        # Левая колонка
+        left_frame = ctk.CTkFrame(upper_frame)
+        left_frame.grid(row=0, column=0, padx=10, pady=10)
+
+        # Поле для ввода произвольного текста (не используется в текущей логике)
+        self.left_label = ctk.CTkLabel(left_frame, text="По ссылке")
+        self.left_label.pack(pady=10)
+
+        self.left_entry = ctk.CTkEntry(left_frame, width=300, placeholder_text = "Введите ссылку на доброе дело")
+        self.left_entry.pack(pady=10)
+
+        self.left_button_1 = ctk.CTkButton(left_frame, text="Открыть файл", command=lambda: class_one_pars.open_file(self.table_frame)) # Без функционала
+        self.left_button_1.pack(pady=10)
+        
+        self.left_button_2 = ctk.CTkButton(left_frame, text="добавить", command=lambda: class_one_pars.for_button_pars(self.left_entry, self.err_label, self.table_frame))  # Без функционала
+        self.left_button_2.pack(pady=10)
+     
+        
+        # Правая колонка
+        right_frame = ctk.CTkFrame(upper_frame)
+        right_frame.grid(row=0, column=1, padx=10, pady=10)
+
+        # Метки и поля для выбора дат
+        self.right_label = ctk.CTkLabel(right_frame, text="По дате")
+        self.right_label.grid(row=0, column=0, padx=5, pady=5, columnspan=2)
+
+        self.start_date_label = ctk.CTkLabel(right_frame, text="От:")
+        self.start_date_label.grid(row=1, column=0, padx=5, pady=5)
+        
+        self.start_date_entry = DateEntry(right_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.start_date_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        self.end_date_label = ctk.CTkLabel(right_frame, text="До:")
+        self.end_date_label.grid(row=2, column=0, padx=5, pady=5)
+        
+        self.end_date_entry = DateEntry(right_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.end_date_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        # Поле для ввода индекса организации
+        self.org_index_label = ctk.CTkLabel(right_frame, text="Индекс(id) организации")
+        self.org_index_label.grid(row=3, column=0, padx=5, pady=10, columnspan=2)
+
+        self.org_index_entry = ctk.CTkEntry(right_frame, width=300, placeholder_text = "индекс ищите в ссылке организаци цыфрами")
+        self.org_index_entry.grid(row=4, column=0, padx=5, pady=5, columnspan=2)
+
+        # Кнопки в правой колонке
+        right_buttons_frame = ctk.CTkFrame(right_frame)
+        right_buttons_frame.grid(row=5, column=0, pady=10, columnspan=2)
+
+        # Кнопка для открытия файла
+        right_button_1 = ctk.CTkButton(
+            right_buttons_frame,
+            text="Открыть файл",
+            command=lambda: class_one_pars.open_file(self.table_frame)  # Передаём таблицу
+        )
+        right_button_1.grid(row=0, column=0, padx=5)
+
+        # Кнопка для парсинга событий и создания отчёта
+        right_button_2 = ctk.CTkButton(right_buttons_frame, text="Создать отчёт", command=self.fetch_and_parse)
+        right_button_2.grid(row=0, column=1, padx=5)
+
+        # Новые заголовки таблицы
+        columns = (
+            "полугодие",
+            "квартал",
+            "месяц",
+            "дата",
+            "часы мероприятия",
+            "название",
+            "проект",
+            "Учасники",
+            "благополучатели",
+            "адрес",
+            "ссылка",
+            "времыя проведения",
+            "человеко часы"
+        )
+
+        # Фрейм для таблицы и скроллбаров
+        table_container = ctk.CTkFrame(self.app)
+        table_container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Вертикальный скроллбар
+        vsb = ttk.Scrollbar(table_container, orient="vertical")
+        vsb.pack(side="right", fill="y")
+
+        # Горизонтальный скроллбар
+        hsb = ttk.Scrollbar(table_container, orient="horizontal")
+        hsb.pack(side="bottom", fill="x")
+
+        self.table_frame = ttk.Treeview(
+            table_container,
+            columns=columns,
+            show="headings",
+            yscrollcommand=vsb.set,
+            xscrollcommand=hsb.set
+        )
+        self.table_frame.pack(fill="both", expand=True)
+
+        vsb.config(command=self.table_frame.yview)
+        hsb.config(command=self.table_frame.xview)
+        
+        # Настраиваем заголовки таблицы
+        for col in columns:
+            self.table_frame.heading(col, text=col)
+        
+
+
+    def fetch_and_parse(self):
+        """
+        Извлекает ссылки на мероприятия по заданным датам и организации,
+        парсит каждую ссылку и добавляет данные в Excel и таблицу интерфейса.
+        """
+        try:
+            # Создаём объект Lincs_parser с данными из интерфейса
+            lincs_parser = Lincs_parser(
+                html=f"https://dobro.ru/organizations/{self.org_index_entry.get()}/events?order%5Bid%5D=desc",
+                start=self.start_date_entry.get_date().strftime('%d/%m/%y'),
+                end=self.end_date_entry.get_date().strftime('%d/%m/%y')
+            )
+            
+            event_links = lincs_parser.pars_all_lincs()
+                        
+            # Парсим каждую ссылку и добавляем данные в Excel
+            for link in event_links:
+                class_one_pars.for_button_pars(link, self.err_label, self.table_frame)
+                
+            
+            self.err_label.configure(text="Обработка завершена успешно!")
+        
+        except Exception as e:
+            self.err_label.configure(text=f"Ошибка: {e}")
+
+
+
+    def run(self):
+        """
+        Запускает главный цикл приложения.
+        """
+        self.app.mainloop()
+
+
+if __name__ == "__main__":
+    # Создаём экземпляр приложения и запускаем его
+    app = EventExcelUpdaterApp()
+    app.run()
+
+
+
+
+**myparser.py**
+
+import requests
+from bs4 import BeautifulSoup
+
+def fetch_html(url):
+    """
+    Загружает HTML-код страницы по указанному URL.
+    :param url: Строка с адресом страницы.
+    :return: Строка с HTML-кодом страницы.
+    """
+    response = requests.get(url)  # Выполняем HTTP-запрос по указанному URL.
+    response.raise_for_status()  # Если сервер вернул ошибку (например, 404 или 500), выбрасывается исключение.
+    return response.text  # Возвращаем текст HTML-кода страницы.
+
+def extract_data(html, class_names):
+    """
+    Извлекает текстовые данные из HTML по списку CSS-классов.
+    :param html: HTML-код страницы.
+    :param class_names: Список CSS-классов для поиска.
+    :return: Словарь: ключ — имя класса, значение — список текстов элементов.
+    """
+    soup = BeautifulSoup(html, 'html.parser')  # Парсим HTML-код с помощью BeautifulSoup.
+    extracted_data = {}  # Здесь будут храниться извлеченные данные.
+
+    # Проходим по всем указанным именам классов.
+    for class_name in class_names:
+        # Находим все элементы с текущим именем класса.
+        elements = soup.find_all(class_=class_name)
+        # Сохраняем текст каждого элемента в виде списка, убирая лишние пробелы.
+        extracted_data[class_name] = [element.get_text(strip=True) for element in elements]
+    
+    return extracted_data  # Возвращаем словарь с извлеченными данными.
+
+#вывод
+def pars_dob(url):    
+    """
+    Основная функция парсинга мероприятия по ссылке.
+    Загружает HTML, извлекает нужные данные по классам, формирует итоговый словарь.
+    :param url: URL страницы мероприятия.
+    :return: Словарь с извлечёнными данными и ссылкой.
+    """
+    # Определяем список классов, данные из которых нужно извлечь.
+    class_names = ["EventInfo_event-title__k6Fsy d-none d-md-block",
+                   "EventInfo_event-partner__mHSXd d-none d-md-block",
+                   "CardTypes_card-location__title__uqLH2",
+                   "CardTypes_card-time__title__b3zsJ",
+                   "EventVacanciesTab_tab__ePxnH"]
+    
+    # Получаем HTML-код страницы.
+    html = fetch_html(url)
+    # Извлекаем данные по указанным классам.
+    data = extract_data(html, class_names)
+    
+    # Создаем итоговый словарь для результатов.
+    out_data = {}
+    
+    # Обрабатываем извлеченные данные.
+    for class_name, texts in data.items():
+        # Убираем дубликаты в тексте, используя set.
+        texts = list(set(texts))
+        for text in texts:
+            try:
+                # Если ключ уже существует, добавляем данные с разделителем "$".
+                out_data[class_name] = str(out_data[class_name]) + str(text) + "$"                
+            except:
+                # Если ключа ещё нет, просто добавляем значение.
+                out_data[class_name] = text
+    
+    # Добавляем URL страницы к итоговым данным.
+    out_data["url"] = url
+    
+    return out_data  # Возвращаем итоговый словарь с результатами.
+
+
+
+
+**test_lincs_parser.py**
+
+import pytest
+from linc_pars import Lincs_parser
+
+
+# 1. Тест функции перевода даты
+def test_translate_date():
+    parser = Lincs_parser(html=0, start="01/01/23", end="01/01/24")
+    result = parser.translate_date("12 сентября 2024")
+    assert result == "12 9 2024"
+
+# 2. Тест parse_events с фиктивным HTML
+def test_parse_events_within_range():
+    html = '''
+    <div class="OrganizationEventsPage_events__item__NULCJ col-12 col-sm-6 col-md-4 col-lg-3">
+        <span class="CardTypes_card-date__title__zS1Lv">12 сентября 2023</span>
+        <a href="/event/123">Событие</a>
+    </div>
+    <div class="OrganizationEventsPage_events__item__NULCJ col-12 col-sm-6 col-md-4 col-lg-3">
+        <span class="CardTypes_card-date__title__zS1Lv">15 октября 2025</span>
+        <a href="/event/999">Позднее событие</a>
+    </div>
+    '''
+    parser = Lincs_parser(html=0, start="01/01/23", end="01/01/24")
+    parser.parse_events(html)
+
+    assert parser.event_links == ["/event/123"]  # Только первое событие попадает в диапазон
+
+
+
+
+**test_myparser.py**
+
+import pytest
+from bs4 import BeautifulSoup
+from myparser import extract_data, pars_dob
+
+# Для мока
+import builtins
+import myparser as pdm
+from unittest.mock import patch
+
+# 1. Тестируем extract_data на простом HTML
+def test_extract_data_simple():
+    html = """
+    <div class="class1">Текст 1</div>
+    <div class="class1">Текст 2</div>
+    <div class="class2">Другой текст</div>
+    """
+    result = extract_data(html, ["class1", "class2"])
+    assert result == {
+        "class1": ["Текст 1", "Текст 2"],
+        "class2": ["Другой текст"]
+    }
+
+# 2. Тестируем pars_dob с замоканным fetch_html
+def test_pars_dob_mocked():
+    fake_html = """
+    <div class="EventInfo_event-title__k6Fsy d-none d-md-block">Событие A</div>
+    <div class="CardTypes_card-location__title__uqLH2">Moscow</div>
+    """
+    fake_url = "http://example.com/event"
+
+    with patch.object(pdm, 'fetch_html', return_value=fake_html):
+        result = pars_dob(fake_url)
+        assert result["EventInfo_event-title__k6Fsy d-none d-md-block"].startswith("Событие A")
+        assert result["CardTypes_card-location__title__uqLH2"] == "Moscow"
+        assert result["url"] == fake_url
+
+
+
+

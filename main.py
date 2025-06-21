@@ -12,22 +12,42 @@ class_one_pars = dobro_parser()  # Экземпляр класса `dobro_parser
 class EventExcelUpdaterApp:
     """
     Класс приложения для парсинга событий и записи данных в Excel.
+
+    Атрибуты
+    --------
+    app : ctk.CTk
+        Главное окно приложения.
+    table_frame : ttk.Treeview
+        Таблица для отображения данных.
+    err_label : ctk.CTkLabel
+        Метка для вывода ошибок и статуса.
+    left_entry : ctk.CTkEntry
+        Поле для ввода ссылки на мероприятие.
+    org_index_entry : ctk.CTkEntry
+        Поле для ввода индекса организации.
+    start_date_entry : DateEntry
+        Виджет выбора начальной даты.
+    end_date_entry : DateEntry
+        Виджет выбора конечной даты.
     """
-    
+
     def __init__(self):
         """
-        Инициализация приложения.
+        Инициализация приложения: создание окна, настройка интерфейса.
         """
-        self.app = ctk.CTk()  # Создаём основное окно приложения
-        self.app.geometry("800x600")  # Устанавливаем размеры окна
-        self.app.title("Event Excel Updater")  # Устанавливаем заголовок окна
-        
-        # Настраиваем графический интерфейс
+        self.app = ctk.CTk()
+        self.app.geometry("800x600")
+        self.app.title("Event Excel Updater")
         self.setup_gui()
         self.app.bind("<Control-KeyPress>", self.keypress)
-        
+
     @staticmethod
     def keypress(event):
+        """
+        Обработка нажатий клавиш Ctrl+C, Ctrl+V, Ctrl+X для копирования, вставки и вырезания.
+
+        :param event: Событие клавиатуры.
+        """
         if event.keysym == "v":
             pass
         elif event.keycode == 86:
@@ -39,7 +59,7 @@ class EventExcelUpdaterApp:
 
     def setup_gui(self):
         """
-        Создаёт элементы пользовательского интерфейса и размещает их.
+        Создаёт элементы пользовательского интерфейса и размещает их в окне приложения.
         """
         self.link1 = ctk.CTkLabel(self.app, text="руководство", text_color="blue", cursor="hand2")
         self.link1.pack(pady=10)
@@ -63,10 +83,10 @@ class EventExcelUpdaterApp:
         self.left_entry = ctk.CTkEntry(left_frame, width=300, placeholder_text = "Введите ссылку на доброе дело")
         self.left_entry.pack(pady=10)
 
-        self.left_button_1 = ctk.CTkButton(left_frame, text="Открыть файл", command=lambda: class_one_pars.open_file(self.table_frame)) # Без функционала
+        self.left_button_1 = ctk.CTkButton(left_frame, text="Открыть файл", command=lambda: class_one_pars.open_file(self.table_frame))
         self.left_button_1.pack(pady=10)
         
-        self.left_button_2 = ctk.CTkButton(left_frame, text="добавить", command=lambda: class_one_pars.for_button_pars(self.left_entry, self.err_label, self.table_frame))  # Без функционала
+        self.left_button_2 = ctk.CTkButton(left_frame, text="добавить", command=lambda: class_one_pars.for_button_pars(self.left_entry, self.err_label, self.table_frame)) 
         self.left_button_2.pack(pady=10)
      
         
@@ -91,7 +111,7 @@ class EventExcelUpdaterApp:
         self.end_date_entry.grid(row=2, column=1, padx=5, pady=5)
 
         # Поле для ввода индекса организации
-        self.org_index_label = ctk.CTkLabel(right_frame, text="Индекс организации")
+        self.org_index_label = ctk.CTkLabel(right_frame, text="Индекс(id) организации")
         self.org_index_label.grid(row=3, column=0, padx=5, pady=10, columnspan=2)
 
         self.org_index_entry = ctk.CTkEntry(right_frame, width=300, placeholder_text = "индекс ищите в ссылке организаци цыфрами")
@@ -124,7 +144,8 @@ class EventExcelUpdaterApp:
             "проект",
             "Учасники",
             "благополучатели",
-            "аддресс",
+            "адрес",
+            "краткое описание",
             "ссылка",
             "времыя проведения",
             "человеко часы"
@@ -162,7 +183,8 @@ class EventExcelUpdaterApp:
 
     def fetch_and_parse(self):
         """
-        Асинхронная функция для извлечения ссылок на мероприятия и обработки каждой ссылки.
+        Извлекает ссылки на мероприятия по заданным датам и организации,
+        парсит каждую ссылку и добавляет данные в Excel и таблицу интерфейса.
         """
         try:
             # Создаём объект Lincs_parser с данными из интерфейса
@@ -188,7 +210,7 @@ class EventExcelUpdaterApp:
 
     def run(self):
         """
-        Запускает приложение.
+        Запускает главный цикл приложения.
         """
         self.app.mainloop()
 
