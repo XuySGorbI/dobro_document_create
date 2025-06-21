@@ -83,10 +83,10 @@ class EventExcelUpdaterApp:
         self.left_entry = ctk.CTkEntry(left_frame, width=300, placeholder_text = "Введите ссылку на доброе дело")
         self.left_entry.pack(pady=10)
 
-        self.left_button_1 = ctk.CTkButton(left_frame, text="Открыть файл", command=lambda: class_one_pars.open_file(self.table_frame)) # Без функционала
+        self.left_button_1 = ctk.CTkButton(left_frame, text="Открыть файл", command=lambda: class_one_pars.open_file(self.table_frame))
         self.left_button_1.pack(pady=10)
         
-        self.left_button_2 = ctk.CTkButton(left_frame, text="добавить", command=lambda: class_one_pars.for_button_pars(self.left_entry, self.err_label, self.table_frame))  # Без функционала
+        self.left_button_2 = ctk.CTkButton(left_frame, text="добавить", command=lambda: class_one_pars.for_button_pars(self.left_entry, self.err_label, self.table_frame)) 
         self.left_button_2.pack(pady=10)
      
         
@@ -145,6 +145,7 @@ class EventExcelUpdaterApp:
             "Учасники",
             "благополучатели",
             "адрес",
+            "краткое описание",
             "ссылка",
             "времыя проведения",
             "человеко часы"

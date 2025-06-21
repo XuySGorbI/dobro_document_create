@@ -39,11 +39,11 @@ class dobro_parser:
         :param data: Словарь, полученный из функции pars_dob.
         :return: Словарь с преобразованными данными.
         """
-        event_title = data['EventInfo_event-title__k6Fsy d-none d-md-block']  # Название события
-        project = data['EventInfo_event-partner__mHSXd d-none d-md-block']  # Партнёр события
-        location = data['CardTypes_card-location__title__uqLH2']  # Место проведения
-        time_info = data['CardTypes_card-time__title__b3zsJ']  # Дата и время
-        vacancies = data['EventVacanciesTab_tab__ePxnH']  # Вакансии
+        event_title = data.get('EventInfo_event-title__k6Fsy d-none d-md-block', "отсутствует")
+        project = data.get('EventInfo_event-partner__mHSXd d-none d-md-block', "отсутствует")
+        location = data.get('CardTypes_card-location__title__uqLH2', "отсутствует")
+        time_info = data.get('CardTypes_card-time__title__b3zsJ', "отсутствует")
+        vacancies = data.get('EventVacanciesTab_tab__ePxnH', "")
         url = data['url']  # URL события
 
         # Разделение строки времени на дату и время
